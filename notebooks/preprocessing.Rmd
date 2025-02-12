@@ -1,0 +1,115 @@
+---
+title: "Database Structuring for evaluating multilevel models on sced with empirical data from Bernal et al. 2025"
+author: "Cristina Rodríguez-Prada"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+#Initial setup
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required libraries
+
+```{r}
+packages <- c("tidyverse", "readr", "dplyr", "janitor", "skimr", "writexl")
+install_if_missing <- packages[!packages %in% installed.packages()[,"Package"]]
+if(length(install_if_missing)) install.packages(install_if_missing)
+
+# Load libraries
+library(tidyverse)  # Includes dplyr, ggplot2, tidyr, readr, etc.
+library(janitor)    # For cleaning column names
+library(skimr)      # For quick summary of data
+library(writexl) # For exporting to Excel
+```
+
+# Introduction
+
+The study investigates the effects of Prolonged Exposure Therapy (PE) and Compassion-Focused Therapy (CFT) on individuals with posttraumatic stress disorder (PTSD) related to interpersonal trauma, particularly in a Latinx population.
+Given the single-case experimental withdrawal crossover design, data collection involved multiple repeated measurements for four participants across 20 therapy sessions, following two predefined treatment sequences: A/C/B/C/B and A/B/C/B/C.
+These sequences aimed to control for order effects and treatment differences.
+
+The dataset contains weekly assessments of PTSD symptoms and process-related variables, including re-experiencing trauma (MEDI), guilt (TRG-SF), shame (TRS-SF), and self-criticism (FSCRS-SF).
+Since the data were originally stored in wide format, with multiple columns for each session, preprocessing was necessary to convert it into long format, allowing for efficient multilevel modeling in Jamovi.
+This restructuring enables the analysis of session-by-session changes, phase comparisons, and treatment effectiveness while accounting for individual variability.
+The preprocessing also involved handling missing participant identifiers, renaming variables for consistency, and assigning phase labels to each session based on the experimental design.
+This transformation ensures that the data are structured for statistical analysis and meaningful interpretation of treatment outcomes.
+
+# Import data
+
+The dataset is currently in **wide format** because ach participant has a single row or each dependent variable (values of `MEASURES`'s column), while sessions are organized into separate columns (`SESSION 0: SESSION 20`).
+The first column indicates the participant ID, with `NaN` values in the following rows, suggesting that dependent variables are listed in rows instead of columns.
+This structure is not indicated for adjusting multilevel models in Jamovi.
+
+```{r}
+data <- read_excel("dat/data.xlsx") |> 
+  clean_names() |>  # Clean column names to snake_case format
+  rename(ID = x1) |> 
+  fill(ID, .direction = "down")
+```
+
+#Data pre-processing
+
+To properly adjust multilevel models in Jamovi, data is required to be in **long format**, where each row represents an individual observation.
+To make the dataset compatible, it is necessary to restructure it so that each row corresponds to a unique measurement of a participant in a specific session and to extract the participant ID, which currently appears only in the first row of each block of measures.
+Conditions and sessions are structured in two columns and every dependent variable has its own column, while each row is for each participant.
+
+This format allows to enter random effects (ID and session) to proper analyze changes sesion by session and evalaute the impact of each condition.
+
+Also, we add two columns to register the condition (as it is an experimental SCD) and the order of the components of the therapy.
+
+```{r}
+data_long <- data |> 
+  pivot_longer(cols = starts_with("session_"), #Select all session columns
+               names_to = "session", #Create a new column called Session
+               values_to = "value", # Create a column for the actual values
+               ) |> 
+   mutate(session = as.numeric(str_remove(session, "session_")),
+          
+          condition = case_when(
+            ID %in% c("Cristina", "Paula") ~ "Condition 1",
+            ID %in% c("Natalia", "Camilo") ~ "Condition 2"
+          ),
+          
+          phase = case_when(
+            #Condition 1 (Cristina & Paula)
+            condition == "Condition 1" & session %in% c(0:3) ~ "Baseline (A)",
+            condition == "Condition 1" & session == 4 ~ "TI (Trauma Assessment)",
+            condition == "Condition 1" & session %in% c(5:8) ~ "Compassion (C1)",
+            condition == "Condition 1" & session %in% c(9:12) ~ "Exposure (B1)",
+            condition == "Condition 1" & session %in% c(13:16) ~ "Compassion (C2)",
+            condition == "Condition 1" & session %in% c(17:20) ~ "Exposure (B2)",
+            
+            # Condition 2 (Natalia & Camilo)
+            condition == "Condition 2" & session %in% c(0:3) ~ "Baseline (A)",
+            condition == "Condition 2" & session == 4 ~ "TI (Trauma Assessment)",
+            condition == "Condition 2" & session %in% c(5:8) ~  "Exposure (B1)",
+            condition == "Condition 2" & session %in% c(9:12) ~ "Compassion (C1)",
+            condition == "Condition 2" & session %in% c(13:16) ~ "Exposure (B2)",
+            condition == "Condition 2" & session %in% c(17:20) ~ "Compassion (C2)",
+          ))
+  
+```
+
+We reshaped the dataset to long format using pivot_longer(), converting all "session\_\*" columns into a single "session" column while storing their corresponding values in "value".
+We extracted the session numbers and converted them to a numeric format using mutate().
+
+To account for the experimental design, we assigned participants to "condition", distinguishing between Condition 1 (Cristina & Paula) and Condition 2 (Natalia & Camilo).
+Then, we mapped each session to its respective phase (Baseline A, Trauma Assessment TI, Exposure B, Compassion C), ensuring consistency with the study design.
+
+The final dataset is in long format, where each row represents a single observation of a participant in a specific session.
+The "ID" column identifies the participant, "session" specifies the session number (0 to 20), and "order" distinguishes between Condition 1 and Condition 2.
+The "condition" column indicates the experimental phase (Baseline, Trauma Assessment, Exposure, or Compassion).
+The "measures" column lists the dependent variables (e.g., "MEDI", "TRG-SF"), and "value" contains the corresponding measurement.
+
+# Export data
+
+Finally, the transformed dataset was saved as Excel using write_xlsx() for further analysis in Jamovi.
+
+```{r}
+# Save the transformed dataset as Excel
+write_xlsx(data_long, "dat/data_long.xlsx")
+```
