@@ -41,7 +41,7 @@ data_FSCRS_SF_SELF_REASSURANCE <- data_long |>  filter(measures == "FSCRS-SF_SEL
 ## Model MEDI
 
 ```{r}
-model_MEDI <- lmer(value ~ session + condition + phase + (1 + session | ID), data = data_MEDI)
+model_MEDI <- lmer(value ~ phase * condition + (1 | ID), data = data_MEDI)
 
 summary(model_MEDI)
 
