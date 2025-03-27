@@ -147,6 +147,10 @@ medi_reexp <- data_long |> filter(measures == "MEDI") |> rename(MEDI = value) |>
 
 ## TRG-SF: Guilt
 
+```{r}
+trgsf_guilt <- data_long |> filter(measures == "TRG-SF") |> rename(guilt_trgsf = value) |> select(-measures, everything())
+```
+
 ## TRS-SF: Shame
 
 ## FSCRS-SF: Self-criticism
@@ -159,4 +163,3 @@ Finally, the transformed dataset was saved as Excel using write_xlsx() for furth
 # Save the transformed dataset as Excel
 write_xlsx(data_long, "dat/data_long.xlsx")
 ```
-
