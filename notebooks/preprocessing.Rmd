@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Required libraries
 
 ```{r}
-packages <- c("tidyverse", "readr", "dplyr", "janitor", "skimr", "writexl")
+packages <- c("tidyverse", "readr", "dplyr", "janitor", "skimr", "writexl", "readxl")
 install_if_missing <- packages[!packages %in% installed.packages()[,"Package"]]
 if(length(install_if_missing)) install.packages(install_if_missing)
 
@@ -24,25 +24,36 @@ library(tidyverse)  # Includes dplyr, ggplot2, tidyr, readr, etc.
 library(janitor)    # For cleaning column names
 library(skimr)      # For quick summary of data
 library(writexl) # For exporting to Excel
+library(readxl) # For reading excel files
 ```
 
 # Introduction
 
 The study investigates the effects of Prolonged Exposure Therapy (PE) and Compassion-Focused Therapy (CFT) on individuals with posttraumatic stress disorder (PTSD) related to interpersonal trauma, particularly in a Latinx population.
+
 Given the single-case experimental withdrawal crossover design, data collection involved multiple repeated measurements for four participants across 20 therapy sessions, following two predefined treatment sequences: A/C/B/C/B and A/B/C/B/C.
 These sequences aimed to control for order effects and treatment differences.
 
-The dataset contains weekly assessments of PTSD symptoms and process-related variables, including re-experiencing trauma (MEDI), guilt (TRG-SF), shame (TRS-SF), and self-criticism (FSCRS-SF).
+The dataset contains weekly assessments of PTSD symptoms and process-related variables, including:
+
+-   re-experiencing trauma (MEDI),
+-   guilt (TRG-SF),
+-   shame (TRS-SF), and
+-   self-criticism (FSCRS-SF).
+
 Since the data were originally stored in wide format, with multiple columns for each session, preprocessing was necessary to convert it into long format, allowing for efficient multilevel modeling in Jamovi.
+
 This restructuring enables the analysis of session-by-session changes, phase comparisons, and treatment effectiveness while accounting for individual variability.
+
 The preprocessing also involved handling missing participant identifiers, renaming variables for consistency, and assigning phase labels to each session based on the experimental design.
 This transformation ensures that the data are structured for statistical analysis and meaningful interpretation of treatment outcomes.
 
 # Import data
 
-The dataset is currently in **wide format** because ach participant has a single row or each dependent variable (values of `MEASURES`'s column), while sessions are organized into separate columns (`SESSION 0: SESSION 20`).
+The dataset is currently in **wide format** because each participant has a single row for each dependent variable (values of `MEASURES`'s column), while sessions are organized into separate columns (`SESSION 0: SESSION 20`).
+
 The first column indicates the participant ID, with `NaN` values in the following rows, suggesting that dependent variables are listed in rows instead of columns.
-This structure is not indicated for adjusting multilevel models in Jamovi.
+This structure as it is in Open Science Framework repository is not indicated for adjusting multilevel models in Jamovi, so it is necessary to make some changes.
 
 ```{r}
 data <- read_excel("dat/data.xlsx") |> 
@@ -54,10 +65,12 @@ data <- read_excel("dat/data.xlsx") |>
 #Data pre-processing
 
 To properly adjust multilevel models in Jamovi, data is required to be in **long format**, where each row represents an individual observation.
-To make the dataset compatible, it is necessary to restructure it so that each row corresponds to a unique measurement of a participant in a specific session and to extract the participant ID, which currently appears only in the first row of each block of measures.
+To make the dataset compatible, it is necessary to restructure it so that each row corresponds to a unique measurement of a participant in a specific session\
+and to extract the participant ID, which currently appears only in the first row of each block of measures.
+
 Conditions and sessions are structured in two columns and every dependent variable has its own column, while each row is for each participant.
 
-This format allows to enter random effects (ID and session) to proper analyze changes sesion by session and evalaute the impact of each condition.
+This format allows to enter random effects (ID and session) to proper analyze changes session by session and evaluate the impact of each condition.
 
 Also, we add two columns to register the condition (as it is an experimental SCD) and the order of the components of the therapy.
 
@@ -74,23 +87,42 @@ data_long <- data |>
             ID %in% c("Natalia", "Camilo") ~ "Condition 2"
           ),
           
-          phase = case_when(
-            #Condition 1 (Cristina & Paula)
-            condition == "Condition 1" & session %in% c(0:3) ~ "Baseline (A)",
-            condition == "Condition 1" & session == 4 ~ "TI (Trauma Assessment)",
-            condition == "Condition 1" & session %in% c(5:8) ~ "Compassion (C1)",
-            condition == "Condition 1" & session %in% c(9:12) ~ "Exposure (B1)",
-            condition == "Condition 1" & session %in% c(13:16) ~ "Compassion (C2)",
-            condition == "Condition 1" & session %in% c(17:20) ~ "Exposure (B2)",
+            intervention = case_when(
+              session > 0 & session <= 4 ~ "Baseline",
+              session > 4 ~ "Intervention"),
+          
+          component = case_when(
+            condition == "Condition 1" & session %in% c(0:4) ~ "Baseline", 
+            condition == "Condition 1" & session %in% c(5:8) ~ "Compassion", 
+            condition == "Condition 1" & session %in% c(9:12) ~ "Exposure", 
+            condition == "Condition 1" & session %in% c(13:16) ~ "Compassion", 
+            condition == "Condition 1" & session %in% c(17:20) ~ "Exposure", 
             
             # Condition 2 (Natalia & Camilo)
-            condition == "Condition 2" & session %in% c(0:3) ~ "Baseline (A)",
-            condition == "Condition 2" & session == 4 ~ "TI (Trauma Assessment)",
-            condition == "Condition 2" & session %in% c(5:8) ~  "Exposure (B1)",
-            condition == "Condition 2" & session %in% c(9:12) ~ "Compassion (C1)",
-            condition == "Condition 2" & session %in% c(13:16) ~ "Exposure (B2)",
-            condition == "Condition 2" & session %in% c(17:20) ~ "Compassion (C2)",
-          ))
+            condition == "Condition 2" & session %in% c(0:4) ~ "Baseline", 
+            condition == "Condition 2" & session %in% c(5:8) ~  "Exposure", 
+            condition == "Condition 2" & session %in% c(9:12) ~ "Compassion",
+            condition == "Condition 2" & session %in% c(13:16) ~ "Exposure",
+            condition == "Condition 2" & session %in% c(17:20) ~ "Compassion"
+          ),
+          
+          component_order = case_when(
+            #Consideramos "TI (Trauma Assessment)" como baseline
+            #Condition 1 (Cristina & Paula)
+            condition == "Condition 1" & session %in% c(0:4) ~ "A", #Baseline
+            condition == "Condition 1" & session %in% c(5:8) ~ "C1", #Intervention: Compassion 1
+            condition == "Condition 1" & session %in% c(9:12) ~ "B1", #Intervention: Exposure 1
+            condition == "Condition 1" & session %in% c(13:16) ~ "C2", #Intervention: Compassion 2
+            condition == "Condition 1" & session %in% c(17:20) ~ "B2", #Intervention: Exposure 2
+            
+            # Condition 2 (Natalia & Camilo)
+            condition == "Condition 2" & session %in% c(0:4) ~ "A",
+            condition == "Condition 2" & session %in% c(5:8) ~  "B1",
+            condition == "Condition 2" & session %in% c(9:12) ~ "C1",
+            condition == "Condition 2" & session %in% c(13:16) ~ "B2",
+            condition == "Condition 2" & session %in% c(17:20) ~ "C2"
+            )
+          )
   
 ```
 
@@ -105,6 +137,20 @@ The "ID" column identifies the participant, "session" specifies the session numb
 The "condition" column indicates the experimental phase (Baseline, Trauma Assessment, Exposure, or Compassion).
 The "measures" column lists the dependent variables (e.g., "MEDI", "TRG-SF"), and "value" contains the corresponding measurement.
 
+# Subsets for each dependent variable
+
+## MEDI: Re-experiencing trauma
+
+```{r}
+medi_reexp <- data_long |> filter(measures == "MEDI") |> rename(MEDI = value) |> select(-measures, everything())
+```
+
+## TRG-SF: Guilt
+
+## TRS-SF: Shame
+
+## FSCRS-SF: Self-criticism
+
 # Export data
 
 Finally, the transformed dataset was saved as Excel using write_xlsx() for further analysis in Jamovi.
@@ -113,3 +159,4 @@ Finally, the transformed dataset was saved as Excel using write_xlsx() for furth
 # Save the transformed dataset as Excel
 write_xlsx(data_long, "dat/data_long.xlsx")
 ```
+
