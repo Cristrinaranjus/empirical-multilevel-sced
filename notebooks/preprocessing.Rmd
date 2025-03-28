@@ -88,7 +88,7 @@ data_long <- data |>
           ),
           
             intervention = case_when(
-              session > 0 & session <= 4 ~ "Baseline",
+              session >= 0 & session <= 4 ~ "Baseline",
               session > 4 ~ "Intervention"),
           
           component = case_when(
@@ -170,14 +170,16 @@ fscrs_reassurance <- data_long |> filter(measures == "FSCRS-SF_SELF-REASSURANCE"
 ## Combining all databases with separated dependent variables
 
 ```{r}
-data_dvs <- medi_reexp |>
+datos <- medi_reexp |>
   left_join(trgsf_guilt, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
   left_join(trssf_shame, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
   left_join(fscrs_selfhatred, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
   left_join(fscrs_selfinadequacy, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>   left_join(fscrs_reassurance, by = c("ID", "session", "condition", "intervention", "component", "component_order"))
 ```
 
-# Join
+```{r}
+datos <- datos |> select(ID, MEDI, guilt_trgsf, shame_trssf, self_hatred, self_inadequacy, self_reassurance, session,  condition, intervention, component, component_order)
+```
 
 # Export data
 
@@ -186,5 +188,5 @@ Finally, the transformed dataset was saved as Excel using write_xlsx() for furth
 ```{r}
 # Save the transformed dataset as Excel
 write_xlsx(data_long, "dat/data_long.xlsx")
-```
 
+```
