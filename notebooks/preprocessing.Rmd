@@ -159,6 +159,14 @@ trssf_shame <- data_long |> filter(measures == "TRS-SF") |> rename(shame_trssf =
 
 ## FSCRS-SF: Self-criticism
 
+```{r}
+fscrs_selfhatred <- data_long |> filter(measures == "FSCRS-SF_SELF-HATRED") |> rename(self_hatred = value) |> select(-measures)
+
+fscrs_selfinadequacy<- data_long |> filter(measures == "FSCRS-SF_SELF-INADEQUACY") |> rename(self_inadequacy = value) |> select(-measures)
+
+fscrs_reassurance <- data_long |> filter(measures == "FSCRS-SF_SELF-REASSURANCE") |> rename(self_reassurance = value) |> select(-measures)
+```
+
 # Export data
 
 Finally, the transformed dataset was saved as Excel using write_xlsx() for further analysis in Jamovi.
