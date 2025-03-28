@@ -167,6 +167,18 @@ fscrs_selfinadequacy<- data_long |> filter(measures == "FSCRS-SF_SELF-INADEQUACY
 fscrs_reassurance <- data_long |> filter(measures == "FSCRS-SF_SELF-REASSURANCE") |> rename(self_reassurance = value) |> select(-measures)
 ```
 
+## Combining all databases with separated dependent variables
+
+```{r}
+data_dvs <- medi_reexp |>
+  left_join(trgsf_guilt, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
+  left_join(trssf_shame, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
+  left_join(fscrs_selfhatred, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
+  left_join(fscrs_selfinadequacy, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>   left_join(fscrs_reassurance, by = c("ID", "session", "condition", "intervention", "component", "component_order"))
+```
+
+# Join
+
 # Export data
 
 Finally, the transformed dataset was saved as Excel using write_xlsx() for further analysis in Jamovi.
@@ -175,3 +187,4 @@ Finally, the transformed dataset was saved as Excel using write_xlsx() for furth
 # Save the transformed dataset as Excel
 write_xlsx(data_long, "dat/data_long.xlsx")
 ```
+
