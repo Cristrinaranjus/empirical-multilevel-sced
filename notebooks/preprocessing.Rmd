@@ -142,13 +142,13 @@ The "measures" column lists the dependent variables (e.g., "MEDI", "TRG-SF"), an
 ## MEDI: Re-experiencing trauma
 
 ```{r}
-medi_reexp <- data_long |> filter(measures == "MEDI") |> rename(MEDI = value) |> select(-measures, everything())
+medi_reexp <- data_long |> filter(measures == "MEDI") |> rename(MEDI = value) |> select(-measures)
 ```
 
 ## TRG-SF: Guilt
 
 ```{r}
-trgsf_guilt <- data_long |> filter(measures == "TRG-SF") |> rename(guilt_trgsf = value) |> select(-measures, everything())
+trgsf_guilt <- data_long |> filter(measures == "TRG-SF") |> rename(guilt_trgsf = value) |> select(-measures)
 ```
 
 ## TRS-SF: Shame
