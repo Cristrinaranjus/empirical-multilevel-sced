@@ -153,6 +153,10 @@ trgsf_guilt <- data_long |> filter(measures == "TRG-SF") |> rename(guilt_trgsf =
 
 ## TRS-SF: Shame
 
+```{r}
+trssf_shame <- data_long |> filter(measures == "TRS-SF") |> rename(shame_trssf = value) |> select(-measures)
+```
+
 ## FSCRS-SF: Self-criticism
 
 # Export data
