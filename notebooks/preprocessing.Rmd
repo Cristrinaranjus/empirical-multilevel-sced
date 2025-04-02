@@ -188,6 +188,6 @@ Finally, the transformed dataset was saved as Excel using write_xlsx() for furth
 ```{r}
 # Save the transformed dataset as Excel
 write_xlsx(data_long, "dat/data_long.xlsx")
-write_xlsx(datos, "dat/datos_bernal2025.xlsx" )
+write_xlsx(datos, "dat/datos_bernal2025.xlsx")
 
 ```
