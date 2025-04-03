@@ -83,45 +83,47 @@ data_long <- data |>
    mutate(session = as.numeric(str_remove(session, "session_")),
           
           condition = case_when(
-            ID %in% c("Cristina", "Paula") ~ "Condition 1",
-            ID %in% c("Natalia", "Camilo") ~ "Condition 2"
+            ID %in% c("Cristina", "Paula") ~ "LBCE",
+            ID %in% c("Natalia", "Camilo") ~ "LBEC"
           ),
           
             intervention = case_when(
               session >= 0 & session <= 4 ~ "Baseline",
               session > 4 ~ "Intervention"),
           
-          component = case_when(
-            condition == "Condition 1" & session %in% c(0:4) ~ "Baseline", 
-            condition == "Condition 1" & session %in% c(5:8) ~ "Compassion", 
-            condition == "Condition 1" & session %in% c(9:12) ~ "Exposure", 
-            condition == "Condition 1" & session %in% c(13:16) ~ "Compassion", 
-            condition == "Condition 1" & session %in% c(17:20) ~ "Exposure", 
+          phase = case_when(
+            condition == "LBCE" & session %in% c(0:4) ~ "Baseline", 
+            condition == "LBCE" & session %in% c(5:8) ~ "Compassion", 
+            condition == "LBCE" & session %in% c(9:12) ~ "Exposure", 
+            condition == "LBCE" & session %in% c(13:16) ~ "Compassion", 
+            condition == "LBCE" & session %in% c(17:20) ~ "Exposure", 
             
             # Condition 2 (Natalia & Camilo)
-            condition == "Condition 2" & session %in% c(0:4) ~ "Baseline", 
-            condition == "Condition 2" & session %in% c(5:8) ~  "Exposure", 
-            condition == "Condition 2" & session %in% c(9:12) ~ "Compassion",
-            condition == "Condition 2" & session %in% c(13:16) ~ "Exposure",
-            condition == "Condition 2" & session %in% c(17:20) ~ "Compassion"
+            condition == "LBEC" & session %in% c(0:4) ~ "Baseline", 
+            condition == "LBEC" & session %in% c(5:8) ~  "Exposure", 
+            condition == "LBEC" & session %in% c(9:12) ~ "Compassion",
+            condition == "LBEC" & session %in% c(13:16) ~ "Exposure",
+            condition == "LBEC" & session %in% c(17:20) ~ "Compassion"
           ),
           
-          component_order = case_when(
+          replica = case_when(
             #Consideramos "TI (Trauma Assessment)" como baseline
             #Condition 1 (Cristina & Paula)
-            condition == "Condition 1" & session %in% c(0:4) ~ "A", #Baseline
-            condition == "Condition 1" & session %in% c(5:8) ~ "C1", #Intervention: Compassion 1
-            condition == "Condition 1" & session %in% c(9:12) ~ "B1", #Intervention: Exposure 1
-            condition == "Condition 1" & session %in% c(13:16) ~ "C2", #Intervention: Compassion 2
-            condition == "Condition 1" & session %in% c(17:20) ~ "B2", #Intervention: Exposure 2
+            condition == "LBCE" & session %in% c(0:4) ~ "0", #Baseline
+            condition == "LBCE" & session %in% c(5:8) ~ "1", #Intervention: Compassion 1
+            condition == "LBCE" & session %in% c(9:12) ~ "1", #Intervention: Exposure 1
+            condition == "LBCE" & session %in% c(13:16) ~ "2", #Intervention: Compassion 2
+            condition == "LBCE" & session %in% c(17:20) ~ "2", #Intervention: Exposure 2
             
             # Condition 2 (Natalia & Camilo)
-            condition == "Condition 2" & session %in% c(0:4) ~ "A",
-            condition == "Condition 2" & session %in% c(5:8) ~  "B1",
-            condition == "Condition 2" & session %in% c(9:12) ~ "C1",
-            condition == "Condition 2" & session %in% c(13:16) ~ "B2",
-            condition == "Condition 2" & session %in% c(17:20) ~ "C2"
-            )
+            condition == "LBEC" & session %in% c(0:4) ~ "0",
+            condition == "LBEC" & session %in% c(5:8) ~  "1",
+            condition == "LBEC" & session %in% c(9:12) ~ "1",
+            condition == "LBEC" & session %in% c(13:16) ~ "2",
+            condition == "LBEC" & session %in% c(17:20) ~ "2"
+            ),
+          rep1 = if_else(replica == 1, 1, 0),
+          rep2 = if_else(replica == 2, 1, 0)
           )
   
 ```
@@ -171,14 +173,14 @@ fscrs_reassurance <- data_long |> filter(measures == "FSCRS-SF_SELF-REASSURANCE"
 
 ```{r}
 datos <- medi_reexp |>
-  left_join(trgsf_guilt, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
-  left_join(trssf_shame, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
-  left_join(fscrs_selfhatred, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>
-  left_join(fscrs_selfinadequacy, by = c("ID", "session", "condition", "intervention", "component", "component_order")) |>   left_join(fscrs_reassurance, by = c("ID", "session", "condition", "intervention", "component", "component_order"))
+  left_join(trgsf_guilt, by = c("ID", "session", "condition", "intervention", "phase", "replica", "rep1", "rep2")) |>
+  left_join(trssf_shame, by = c("ID", "session", "condition", "intervention", "phase", "replica", "rep1", "rep2")) |>
+  left_join(fscrs_selfhatred, by = c("ID", "session", "condition", "intervention", "phase", "replica", "rep1", "rep2")) |>
+  left_join(fscrs_selfinadequacy, by = c("ID", "session", "condition", "intervention", "phase", "replica", "rep1", "rep2")) |>   left_join(fscrs_reassurance, by = c("ID", "session", "condition", "intervention", "phase", "replica", "rep1", "rep2"))
 ```
 
 ```{r}
-datos <- datos |> select(ID, MEDI, guilt_trgsf, shame_trssf, self_hatred, self_inadequacy, self_reassurance, session,  condition, intervention, component, component_order)
+datos <- datos |> select(ID, MEDI, guilt_trgsf, shame_trssf, self_hatred, self_inadequacy, self_reassurance, session,  condition, intervention, phase, replica, rep1, rep2)
 ```
 
 # Export data
