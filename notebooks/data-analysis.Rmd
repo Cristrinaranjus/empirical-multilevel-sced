@@ -1,0 +1,66 @@
+---
+title: "Multilevel analysis for SCED using empirical data from Bernal et al. 2025"
+author: "Cristina Rodríguez-Prada"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Required libraries
+
+```{r}
+packages <- c("tidyverse", "readr", "dplyr", "janitor", "skimr", "writexl", "lme4", "lmerTest", "performance", "readxl")
+install_if_missing <- packages[!packages %in% installed.packages()[,"Package"]]
+if(length(install_if_missing)) install.packages(install_if_missing)
+
+# Load libraries
+library(tidyverse)  # Includes dplyr, ggplot2, tidyr, readr, etc.
+library(janitor)    # For cleaning column names
+library(skimr)      # For quick summary of data
+library(writexl) # For exporting to Excel
+library(lme4)
+library(lmerTest)
+library(performance)
+library(readxl)
+```
+
+## Import data
+
+```{r}
+data_long <- read_excel("dat/data_long.xlsx")
+
+data_MEDI <- data_long |> filter(measures == "MEDI")
+data_TRG <- data_long |>  filter(measures == "TRG-SF")
+data_TRS <- data_long |>  filter(measures == "TRS-SF")
+data_FSCRS_SF_SELF_HATRED <- data_long |>  filter(measures == "FSCRS-SF_SELF-HATRED")
+data_FSCRS_SF_SELF_INADEQUACY <- data_long |>  filter(measures == "FSCRS-SF_SELF-INADEQUACY")
+data_FSCRS_SF_SELF_REASSURANCE <- data_long |>  filter(measures == "FSCRS-SF_SELF-REASSURANCE")
+```
+
+## Model MEDI
+
+```{r}
+model_MEDI <- lmer(value ~ phase * condition + (1 | ID), data = data_MEDI)
+
+summary(model_MEDI)
+
+check_model(model_MEDI)
+
+
+# Generate predicted values from the LMM
+data_MEDI <- data_MEDI %>%
+  mutate(predicted = predict(model_MEDI, re.form = NA), # Only fixed effects
+         predicted_by_ID = predict(model_MEDI, re.form = ~(1 + session | ID))  
+  )
+
+# Generate subject-specific predictions (accounting for random effects)
+df_filtered <- df_filtered %>%
+  mutate(predicted_by_ID = predict(lmm_model, re.form = ~(1 + session | ID)))  
+
+ggplot(data_MEDI, aes(x = session, y = value, color = condition, group = ID)) +
+  geom_line(size = 1.5, alpha = 0.8) +
+  stat_smooth(method = "lm", se = TRUE) +
+  labs(title = "PTSD Symptom Changes Over Time", y = "MEDI Score", x = "Session") +
+  theme_minimal()
+```
